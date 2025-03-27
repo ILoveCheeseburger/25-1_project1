@@ -237,22 +237,30 @@ void process_command(char *line)
             return;
         }
 
-        int max = list_entry(list_begin(&my_lists[idx]), list_item, elem)->data;
-        // &my_list[idx]는 list* 이지, list_elem* 이 아님.
-        // list_entry 는 list_elem*을 참조하여, 그 elem를 갖고있는 리스트 칸을 꺼내는 아이니까
-        // 첫번쨰elem*로 바꿔줘야 하니까 list_begin() 사용
-        struct list_elem *e;
-        for (e = list_begin(&my_lists[idx]); e != list_end(&my_lists[idx]); e = list_next(e))
+        if (list_empty(&my_lists[idx]))
         {
-            int now_data = list_entry(e, list_item, elem)->data;
-
-            if (now_data > max)
-            {
-                max = now_data;
-            }
+            printf("List is empty.\n");
+            return;
         }
+        else
+        {
+            int max = list_entry(list_begin(&my_lists[idx]), list_item, elem)->data;
+            // &my_list[idx]는 list* 이지, list_elem* 이 아님.
+            // list_entry 는 list_elem*을 참조하여, 그 elem를 갖고있는 리스트 칸을 꺼내는 아이니까
+            // 첫번쨰elem*로 바꿔줘야 하니까 list_begin() 사용
+            struct list_elem *e;
+            for (e = list_begin(&my_lists[idx]); e != list_end(&my_lists[idx]); e = list_next(e))
+            {
+                int now_data = list_entry(e, list_item, elem)->data;
 
-        printf("%d\n", max);
+                if (now_data > max)
+                {
+                    max = now_data;
+                }
+            }
+
+            printf("%d\n", max);
+        }
     }
 
     if (strcmp(cmd, "list_sort") == 0) // list_sort <list_name> : list_sort mylist
@@ -265,6 +273,164 @@ void process_command(char *line)
         }
 
         list_sort(&my_lists[idx], cmp_list_data, NULL);
+        return;
+    }
+
+    // list_min <list_name>
+    // ex: list_min mylist
+    if (strcmp(cmd, "list_min") == 0)
+    {
+        int idx = find_list_index(arg1);
+        if (idx == -1)
+        {
+            printf("List not found.\n");
+            return;
+        }
+
+        if (list_empty(&my_lists[idx]))
+        {
+            printf("List is empty.\n");
+            return;
+        }
+        else
+        {
+            int min = list_entry(list_begin(&my_lists[idx]), list_item, elem)->data;
+            // &my_list[idx]는 list* 이지, list_elem* 이 아님.
+            // list_entry 는 list_elem*을 참조하여, 그 elem를 갖고있는 리스트 칸을 꺼내는 아이니까
+            // 첫번쨰elem*로 바꿔줘야 하니까 list_begin() 사용
+            struct list_elem *e;
+            for (e = list_begin(&my_lists[idx]); e != list_end(&my_lists[idx]); e = list_next(e))
+            {
+                int now_data = list_entry(e, list_item, elem)->data;
+
+                if (now_data > min)
+                {
+                    min = now_data;
+                }
+            }
+
+            printf("%d\n", min);
+        }
+    }
+
+    // list_size <list_name>
+    // ex: list_size mylist
+    if (strcmp(cmd, "list_size") == 0)
+    {
+        int idx = find_list_index(arg1);
+        if (idx == -1)
+        {
+            printf("List not found.\n");
+            return;
+        }
+
+        int size = list_size(&my_lists[idx]);
+        printf("%d\n", size);
+
+        return;
+    }
+
+    // list_empty <list_name>
+    // ex: list_empty mylist
+    if (strcmp(cmd, "list_empty") == 0)
+    {
+        int idx = find_list_index(arg1);
+        if (idx == -1)
+        {
+            printf("List not found.\n");
+            return;
+        }
+
+        bool is_empty = list_empty(&my_lists[idx]);
+        printf("%s\n", is_empty ? "true" : "false");
+
+        return;
+    }
+
+    // list_front <list_name>
+    // ex: list_front mylist
+    if (strcmp(cmd, "list_front") == 0)
+    {
+        int idx = find_list_index(arg1);
+        if (idx == -1)
+        {
+            printf("List not found.\n");
+            return;
+        }
+
+        if (list_empty(&my_lists[idx]))
+        {
+            printf("List is empty.\n");
+            return;
+        }
+        else
+        {
+            struct list_elem *list_front_e = list_begin(&my_lists[idx]);
+            // list_begin()은 흔히 말하는 “head 노드”가 아니라,실제 첫 번째 노드를 가리킴.
+            list_item *list_front_i = list_entry(list_front_e, list_item, elem);
+
+            int list_front_value = list_front_i->data;
+            printf("%d\n", list_front_value);
+
+            return;
+        }
+
+        return;
+    }
+
+    // list_back <list_name>
+    // ex: list_back mylist
+    if (strcmp(cmd, "list_back") == 0)
+    {
+        int idx = find_list_index(arg1);
+        if (idx == -1)
+        {
+            printf("List not found.\n");
+            return;
+        }
+
+        if (list_empty(&my_lists[idx]))
+        {
+            printf("List is empty.\n");
+            return;
+        }
+        else
+        {
+            struct list_elem *list_last_e = list_end(&my_lists[idx])->prev;
+            // list_end()는 데이터가 없는 더미(dumb) 노드이고, list_begin 이랑 다름
+            // 리스트 순회할 때 도착지 역할만 함.list_item *list_last_i = list_entry(list_last_e, list_item, elem);
+            list_item *list_last_i = list_entry(list_last_e, list_item, elem);
+
+            int list_last_value = list_last_i->data;
+            printf("%d\n", list_last_value);
+
+            return;
+        }
+
+        return;
+    }
+
+    // list_reverse <list_name>
+    // ex: list_reverse mylist
+    if (strcmp(cmd, "list_reverse") == 0)
+    {
+        int idx = find_list_index(arg1);
+        if (idx == -1)
+        {
+            printf("List not found.\n");
+            return;
+        }
+
+        if (list_empty(&my_lists[idx]))
+        {
+            printf("List is empty.\n");
+            return;
+        }
+        else
+        {
+            list_reverse(&my_lists[idx]);
+        }
+
         return;
     }
 }
