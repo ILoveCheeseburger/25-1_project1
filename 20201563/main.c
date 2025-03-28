@@ -38,6 +38,81 @@ bool cmp_list_data(const struct list_elem *a, const struct list_elem *b, void *a
         return false;
 }
 
+// hash apply square, triplr 에서 사용되는 함수.
+void square(struct hash_elem *e, void *aux)
+{
+    hash_item *item = hash_entry(e, hash_item, elem);
+    int squared_value = item->data * item->data;
+    item->data = squared_value;
+}
+
+void triple(struct hash_elem *e, void *aux)
+{
+    hash_item *item = hash_entry(e, hash_item, elem);
+    int tripled_value = item->data * item->data * item->data;
+    item->data = tripled_value;
+}
+
+// 해시 관련 구조체
+struct hash my_hashes[MAX_HASH];
+char *hash_names[MAX_HASH];
+int hash_count = 0;
+
+typedef struct hash_item
+{
+    int data;
+    struct hash_elem elem;
+} hash_item;
+
+int find_hash_index(const char *name)
+{
+    for (int i = 0; i < hash_count; i++)
+    {
+        if (strcmp(hash_names[i], name) == 0)
+            return i;
+    }
+    return -1;
+}
+
+unsigned hash_func(const struct hash_elem *e, void *aux)
+{
+    hash_item *item = hash_entry(e, hash_item, elem);
+    return hash_int(item->data);
+}
+
+bool cmp_hash_data(const struct hash_elem *a, const struct hash_elem *b, void *aux)
+{
+    hash_item *item_a = hash_entry(a, hash_item, elem);
+    hash_item *item_b = hash_entry(b, hash_item, elem);
+
+    if (item_a->data < item_b->data)
+        return true;
+    else
+        return false;
+}
+
+// bitmap 관려 구조체 및 함수
+struct bitmap *my_bitmaps[MAX_BITMAP];
+char *bitmap_names[MAX_BITMAP];
+int bitmap_count = 0;
+
+int find_bitmap_index(const char *name)
+{
+    for (int i = 0; i < bitmap_count; i++)
+    {
+        if (strcmp(bitmap_names[i], name) == 0)
+            return i;
+    }
+    return -1;
+}
+
+/*
+
+/////////////////
+실제 명령어 처리함수
+/////////////////
+
+*/
 void process_command(char *line)
 {
     char cmd[32], arg1[32], arg2[32], arg3[32];
@@ -276,6 +351,7 @@ void process_command(char *line)
         return;
     }
 
+<<<<<<< HEAD
     // list_min <list_name>
     // ex: list_min mylist
     if (strcmp(cmd, "list_min") == 0)
@@ -326,127 +402,406 @@ void process_command(char *line)
 
         int size = list_size(&my_lists[idx]);
         printf("%d\n", size);
-
-        return;
-    }
-
-    // list_empty <list_name>
-    // ex: list_empty mylist
-    if (strcmp(cmd, "list_empty") == 0)
-    {
-        int idx = find_list_index(arg1);
-        if (idx == -1)
+        == == == =
+                     // list_insert_ordered <list_name> <value>
+            if (strcmp(cmd, "list_insert_ordered") == 0)
         {
-            printf("List not found.\n");
+            int idx = find_list_index(arg1);
+            if (idx == -1)
+                return;
+            list_item *item = malloc(sizeof(list_item));
+            item->data = atoi(arg2);
+            list_insert_ordered(&my_lists[idx], &item->elem, cmp_list_data, NULL);
             return;
         }
 
-        bool is_empty = list_empty(&my_lists[idx]);
-        printf("%s\n", is_empty ? "true" : "false");
-
-        return;
-    }
-
-    // list_front <list_name>
-    // ex: list_front mylist
-    if (strcmp(cmd, "list_front") == 0)
-    {
-        int idx = find_list_index(arg1);
-        if (idx == -1)
+        // list_unique <list_name>
+        if (strcmp(cmd, "list_unique") == 0)
         {
-            printf("List not found.\n");
+            int idx = find_list_index(arg1);
+            if (idx == -1)
+                return;
+
+            // 중복 제거 전 정렬 필요
+            list_sort(&my_lists[idx], cmp_list_data, NULL);
+            list_unique(&my_lists[idx], NULL, cmp_list_data, NULL);
             return;
         }
 
-        if (list_empty(&my_lists[idx]))
+        // list_splice <dest_list> <index> <src_list>
+        if (strcmp(cmd, "list_splice") == 0)
         {
-            printf("List is empty.\n");
-            return;
-        }
-        else
-        {
-            struct list_elem *list_front_e = list_begin(&my_lists[idx]);
-            // list_begin()은 흔히 말하는 “head 노드”가 아니라,실제 첫 번째 노드를 가리킴.
-            list_item *list_front_i = list_entry(list_front_e, list_item, elem);
+            int dest_idx = find_list_index(arg1);
+            int src_idx = find_list_index(arg3);
+            if (dest_idx == -1 || src_idx == -1)
+                return;
+            int pos = atoi(arg2);
+            struct list_elem *e = list_begin(&my_lists[dest_idx]);
+            for (int i = 0; i < pos && e != list_end(&my_lists[dest_idx]); i++)
+                e = list_next(e);
+            list_splice(e, list_begin(&my_lists[src_idx]), list_end(&my_lists[src_idx]));
 
-            int list_front_value = list_front_i->data;
-            printf("%d\n", list_front_value);
-
-            return;
-        }
-
-        return;
-    }
-
-    // list_back <list_name>
-    // ex: list_back mylist
-    if (strcmp(cmd, "list_back") == 0)
-    {
-        int idx = find_list_index(arg1);
-        if (idx == -1)
-        {
-            printf("List not found.\n");
+            // src 리스트는 요소를 모두 옮겼으므로 초기화
+            list_init(&my_lists[src_idx]);
             return;
         }
 
-        if (list_empty(&my_lists[idx]))
+        // list_pop_front <list_name>
+        if (strcmp(cmd, "list_pop_front") == 0)
         {
-            printf("List is empty.\n");
-            return;
-        }
-        else
-        {
-            struct list_elem *list_last_e = list_end(&my_lists[idx])->prev;
-            // list_end()는 데이터가 없는 더미(dumb) 노드이고, list_begin 이랑 다름
-            // 리스트 순회할 때 도착지 역할만 함.list_item *list_last_i = list_entry(list_last_e, list_item, elem);
-            list_item *list_last_i = list_entry(list_last_e, list_item, elem);
-
-            int list_last_value = list_last_i->data;
-            printf("%d\n", list_last_value);
-
+            int idx = find_list_index(arg1);
+            if (idx == -1 || list_empty(&my_lists[idx]))
+                return;
+            struct list_elem *e = list_pop_front(&my_lists[idx]);
+            list_item *front_item = list_entry(e, list_item, elem);
+            free(front_item);
             return;
         }
 
-        return;
-    }
-
-    // list_reverse <list_name>
-    // ex: list_reverse mylist
-    if (strcmp(cmd, "list_reverse") == 0)
-    {
-        int idx = find_list_index(arg1);
-        if (idx == -1)
+        // list_pop_back <list_name>
+        if (strcmp(cmd, "list_pop_back") == 0)
         {
-            printf("List not found.\n");
+            int idx = find_list_index(arg1);
+            if (idx == -1 || list_empty(&my_lists[idx]))
+                return;
+            struct list_elem *e = list_pop_back(&my_lists[idx]);
+            list_item *back_item = list_entry(e, list_item, elem);
+            free(back_item);
             return;
         }
 
-        if (list_empty(&my_lists[idx]))
+        // delete <list_name>
+        if (strcmp(cmd, "delete") == 0)
         {
-            printf("List is empty.\n");
+            int idx = find_list_index(arg1);
+            if (idx == -1)
+                return;
+            struct list_elem *e = list_begin(&my_lists[idx]);
+            while (e != list_end(&my_lists[idx]))
+            {
+                struct list_elem *next = list_next(e);
+                list_item *item = list_entry(e, list_item, elem);
+                list_remove(e);
+                free(item);
+                e = next;
+            }
+            // 리스트 이름 메모리도 해제
+            free(list_names[idx]);
+            list_names[idx] = NULL;
             return;
         }
-        else
+
+        // 해시 관련
+        if (strcmp(cmd, "create") == 0 && strcmp(arg1, "hash") == 0)
         {
-            list_reverse(&my_lists[idx]);
+            if (hash_count >= MAX_HASH)
+            {
+                printf("Too many hashes.\n");
+                return;
+            }
+            hash_init(&my_hashes[hash_count], hash_func, cmp_hash_data, NULL);
+            hash_names[hash_count] = strdup(arg2);
+            hash_count++;
+            return;
         }
 
-        return;
-    }
-}
+        if (strcmp(cmd, "hash_insert") == 0)
+        {
+            int idx = find_hash_index(arg1);
+            if (idx == -1)
+                return;
+            hash_item *item = malloc(sizeof(hash_item));
+            item->data = atoi(arg2);
+            hash_insert(&my_hashes[idx], &item->elem);
+            return;
+        }
 
-int main()
-{
-    char line[MAX_INPUT];
+        if (strcmp(cmd, "hash_find") == 0)
+        {
+            int idx = find_hash_index(arg1);
+            if (idx == -1)
+                return;
+            hash_item temp;
+            temp.data = atoi(arg2);
+            struct hash_elem *e = hash_find(&my_hashes[idx], &temp.elem);
+            printf("%s\n", e ? "true" : "false");
+            return;
+        }
 
-    while (1)
-    {
-        if (fgets(line, sizeof(line), stdin) == NULL)
-            break;
-        if (line[strlen(line) - 1] == '\n')
-            line[strlen(line) - 1] = '\0';
-        process_command(line);
-    }
+        if (strcmp(cmd, "hash_delete") == 0)
+        {
+            int idx = find_hash_index(arg1);
+            if (idx == -1)
+                return;
+            hash_item temp;
+            temp.data = atoi(arg2);
+            struct hash_elem *e = hash_delete(&my_hashes[idx], &temp.elem);
+            free(hash_entry(e, hash_item, elem));
+        }
 
-    return 0;
-}
+        if (strcmp(cmd, "hash_clear") == 0)
+        {
+            int idx = find_hash_index(arg1);
+            if (idx == -1)
+                return;
+            hash_clear(&my_hashes[idx], free);
+            return;
+        }
+
+        if (strcmp(cmd, "hash_empty") == 0)
+        {
+            int idx = find_hash_index(arg1);
+            if (idx == -1)
+                return;
+            printf("%s\n", hash_empty(&my_hashes[idx]) ? "true" : "false");
+            return;
+        }
+
+        if (strcmp(cmd, "hash_size") == 0)
+        {
+            int idx = find_hash_index(arg1);
+            if (idx == -1)
+                return;
+            printf("%zu\n", hash_size(&my_hashes[idx]));
+            return;
+        }
+
+        if (strcmp(cmd, "hash_apply") == 0)
+        {
+            int idx = find_hash_index(arg1);
+            if (idx == -1)
+                return;
+
+            if (strcmp(arg2, "square") == 0)
+                hash_apply(&my_hashes[idx], square);
+            else if (strcmp(arg2, "triple") == 0)
+                hash_apply(&my_hashes[idx], triple);
+>>>>>>> 58522df (dd)
+
+            return;
+        }
+
+<<<<<<< HEAD
+        // list_empty <list_name>
+        // ex: list_empty mylist
+        if (strcmp(cmd, "list_empty") == 0)
+        {
+            int idx = find_list_index(arg1);
+            if (idx == -1)
+            {
+                printf("List not found.\n");
+                return;
+            }
+
+            bool is_empty = list_empty(&my_lists[idx]);
+            printf("%s\n", is_empty ? "true" : "false");
+
+            return;
+        }
+
+        // list_front <list_name>
+        // ex: list_front mylist
+        if (strcmp(cmd, "list_front") == 0)
+        {
+            int idx = find_list_index(arg1);
+            if (idx == -1)
+            {
+                printf("List not found.\n");
+                return;
+            }
+
+            if (list_empty(&my_lists[idx]))
+            {
+                printf("List is empty.\n");
+                return;
+            }
+            else
+            {
+                struct list_elem *list_front_e = list_begin(&my_lists[idx]);
+                // list_begin()은 흔히 말하는 “head 노드”가 아니라,실제 첫 번째 노드를 가리킴.
+                list_item *list_front_i = list_entry(list_front_e, list_item, elem);
+
+                int list_front_value = list_front_i->data;
+                printf("%d\n", list_front_value);
+
+                return;
+            }
+
+            return;
+        }
+
+        // list_back <list_name>
+        // ex: list_back mylist
+        if (strcmp(cmd, "list_back") == 0)
+        {
+            int idx = find_list_index(arg1);
+            if (idx == -1)
+            {
+                printf("List not found.\n");
+                return;
+            }
+
+            if (list_empty(&my_lists[idx]))
+            {
+                printf("List is empty.\n");
+                return;
+            }
+            else
+            {
+                struct list_elem *list_last_e = list_end(&my_lists[idx])->prev;
+                // list_end()는 데이터가 없는 더미(dumb) 노드이고, list_begin 이랑 다름
+                // 리스트 순회할 때 도착지 역할만 함.list_item *list_last_i = list_entry(list_last_e, list_item, elem);
+                list_item *list_last_i = list_entry(list_last_e, list_item, elem);
+
+                int list_last_value = list_last_i->data;
+                printf("%d\n", list_last_value);
+
+                return;
+            }
+
+            return;
+        }
+
+        // list_reverse <list_name>
+        // ex: list_reverse mylist
+        if (strcmp(cmd, "list_reverse") == 0)
+        {
+            int idx = find_list_index(arg1);
+            if (idx == -1)
+            {
+                printf("List not found.\n");
+                return;
+            }
+
+            if (list_empty(&my_lists[idx]))
+            {
+                printf("List is empty.\n");
+                return;
+            }
+            else
+            {
+                list_reverse(&my_lists[idx]);
+            }
+
+            == == == =
+                         /* 비트맵 함수 명령어 처림림*/
+
+                if (strcmp(cmd, "create") == 0 && strcmp(arg1, "bitmap") == 0)
+            {
+                if (bitmap_count >= MAX_BITMAP)
+                {
+                    printf("Too many bitmaps.\n");
+                    return;
+                }
+
+                int size = atoi(arg3);
+                my_bitmaps[bitmap_count] = bitmap_create(size);
+                bitmap_names[bitmap_count] = strdup(arg2);
+                bitmap_count++;
+                return;
+            }
+
+            // bitmap_size <name>
+            if (strcmp(cmd, "bitmap_size") == 0)
+            {
+                int idx = find_bitmap_index(arg1);
+                if (idx == -1)
+                    return;
+                printf("%zu\n", bitmap_size(my_bitmaps[idx]));
+                return;
+            }
+
+            // bitmap_mark <name> <index>
+            if (strcmp(cmd, "bitmap_mark") == 0)
+            {
+                int idx = find_bitmap_index(arg1);
+                if (idx == -1)
+                    return;
+                int index = atoi(arg2);
+                bitmap_mark(my_bitmaps[idx], index);
+                return;
+            }
+
+            // bitmap_reset <name> <index>
+            if (strcmp(cmd, "bitmap_reset") == 0)
+            {
+                int idx = find_bitmap_index(arg1);
+                if (idx == -1)
+                    return;
+                int index = atoi(arg2);
+                bitmap_reset(my_bitmaps[idx], index);
+                return;
+            }
+
+            // bitmap_flip <name> <index>
+            if (strcmp(cmd, "bitmap_flip") == 0)
+            {
+                int idx = find_bitmap_index(arg1);
+                if (idx == -1)
+                    return;
+                int index = atoi(arg2);
+                bitmap_flip(my_bitmaps[idx], index);
+                return;
+            }
+
+            // bitmap_test <name> <index>
+            if (strcmp(cmd, "bitmap_test") == 0)
+            {
+                int idx = find_bitmap_index(arg1);
+                if (idx == -1)
+                    return;
+                int index = atoi(arg2);
+                printf("%s\n", bitmap_test(my_bitmaps[idx], index) ? "true" : "false");
+                return;
+            }
+
+            // bitmap_set_all <name> <0 or 1>
+            if (strcmp(cmd, "bitmap_set_all") == 0)
+            {
+                int idx = find_bitmap_index(arg1);
+                if (idx == -1)
+                    return;
+                bool value = atoi(arg2);
+                bitmap_set_all(my_bitmaps[idx], value);
+                return;
+            }
+
+            // bitmap_set <name> <index> <0 or 1>
+            if (strcmp(cmd, "bitmap_set") == 0)
+            {
+                int idx = find_bitmap_index(arg1);
+                if (idx == -1)
+                    return;
+                int index = atoi(arg2);
+                bool value = atoi(arg3);
+                bitmap_set(my_bitmaps[idx], index, value);
+                return;
+            }
+
+            // bitmap_dump <name>
+            if (strcmp(cmd, "bitmap_dump") == 0)
+            {
+                int idx = find_bitmap_index(arg1);
+                if (idx == -1)
+                    return;
+                bitmap_dump(my_bitmaps[idx]);
+>>>>>>> 58522df (dd)
+                return;
+            }
+        }
+
+        int main()
+        {
+            char line[MAX_INPUT];
+
+            while (1)
+            {
+                if (fgets(line, sizeof(line), stdin) == NULL)
+                    break;
+                if (line[strlen(line) - 1] == '\n')
+                    line[strlen(line) - 1] = '\0';
+                process_command(line);
+            }
+
+            return 0;
+        }
