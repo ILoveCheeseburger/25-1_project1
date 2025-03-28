@@ -300,6 +300,9 @@ hash_int (int i)
   return hash_bytes (&i, sizeof i);
 }
 
+unsigned hash_int_2(int i) {
+    return (unsigned)i * 2654435761u; // 저 숫자는knuth가 제안한 값.
+}
 /* Returns the bucket in H that E belongs in. */
 static struct list *
 find_bucket (struct hash *h, struct hash_elem *e) 
