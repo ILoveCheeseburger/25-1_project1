@@ -6,20 +6,6 @@ See hash.h for basic information. */
 #include <assert.h>
 #include <stdlib.h>
 
-// 내가 추가함.
-#include <stddef.h>
-#include <stdint.h>
-
-#define hash_entry(HASH_ELEM, STRUCT, MEMBER) \
-  ((STRUCT *)((uint8_t *)&(HASH_ELEM)->MEMBER - offsetof(STRUCT, MEMBER)))
-
-struct hash_item
-{
-  int data;
-  struct hash_elem elem;
-};
-//
-
 #define ASSERT(CONDITION) assert(CONDITION)
 
 #define list_elem_to_hash_elem(LIST_ELEM) \
