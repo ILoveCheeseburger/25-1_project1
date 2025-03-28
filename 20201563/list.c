@@ -520,29 +520,39 @@ list_min(struct list *list, list_less_func *less, void *aux)
   return min;
 }
 
-struct list_elem *
-list_shuffle(struct list *list)
+void list_swap(struct list_elem *a, struct list_elem *b)
 {
-  size_t listSize = listsize(list);
-  if (listSize < 2)
+
+  if (a == b)
     return;
 
-  // 요소들을 배열에 저장 (임시배열임. 리스트 각 노드의 주소를 담고 있는 리스트임. )
-  // 이론상 이 배열을 쓰지 않고 리스트 자체에서 접근하여 섞을 수도 있지만, 리스트가 다음 노드의 포인터를 지니고 있는 식으로 연결이 되어있기 때문에
-  // 해당 노드의 값으로 접근하려면 계속 순회를 해서 접근해야해서 시간 복잡도가 오래걸림. 그래서
-  // 해당 노드들의 주소값을 갖고있는 배열을 만들어서, 더 쉽게 접근하도록 하는 거임.
-  struct list_elem *items[listSize];
-  struct list_e *items[listSize];
-  int i = 0;
-  for (e = list_begin(&my_lists[idx]); e != list_end(&my_lists[idx]); e = list_next(e))
-    items[i++] = list_entry(e, list_item, elem); // list_entry는 정확히 한 단계만 올라가는 거임. 노드안에 elem 구조체가 있는데. 그 구조체의 원소를 가지고, 한 단계 올라가서, 그 노드의 주소를 반환하는거임.
+  struct list_elem *a_prev = a->prev;
+  struct list_elem *a_next = a->next;
+  struct list_elem *b_prev = b->prev;
+  struct list_elem *b_next = b->next;
 
-  // Fisher-Yates 셔플 알고리즘
-  for (int i = listSize - 1; i > 0; i--)
+  a->prev->next = a;
+  a->next->prev = a;
+  b->prev->next = b;
+  b->next->prev = b;
+}
+
+void list_shuffle(struct list *list)
+{
+  size_t size = list_size(list);
+  if (size < 2)
+    return;
+
+  struct list_elem *arr[size];
+  struct list_elem *e = list_begin(list);
+  for (size_t i = 0; i < size; i++, e = list_next(e))
+    arr[i] = e;
+
+  // Fisher–Yates Shuffle (swap pointer 위치)
+  for (size_t i = size - 1; i > 0; i--)
   {
-    int j = rand() % (i + 1);
-    int temp = items[i]->data;
-    items[i]->data = items[j]->data;
-    items[j]->data = temp;
+    size_t j = rand() % (i + 1);
+    if (i != j)
+      list_swap(arr[i], arr[j]);
   }
 }

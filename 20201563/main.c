@@ -7,6 +7,8 @@
 
 #define MAX_INPUT 128
 #define MAX_LIST 10
+#define MAX_HASH 10
+#define MAX_BITMAP 10
 
 struct list my_lists[MAX_LIST];
 char *list_names[MAX_LIST];
@@ -17,6 +19,20 @@ typedef struct list_item
     int data;
     struct list_elem elem;
 } list_item;
+
+typedef struct hash_item
+{
+    int data;
+    struct hash_elem elem;
+} hash_item;
+
+struct hash my_hashes[MAX_HASH];
+char *hash_names[MAX_HASH];
+int hash_count = 0;
+
+struct bitmap *my_bitmaps[MAX_BITMAP];
+char *bitmap_names[MAX_BITMAP];
+int bitmap_count = 0;
 
 int find_list_index(const char *name)
 {
@@ -54,15 +70,6 @@ void triple(struct hash_elem *e, void *aux)
 }
 
 // 해시 관련 구조체
-struct hash my_hashes[MAX_HASH];
-char *hash_names[MAX_HASH];
-int hash_count = 0;
-
-typedef struct hash_item
-{
-    int data;
-    struct hash_elem elem;
-} hash_item;
 
 int find_hash_index(const char *name)
 {
@@ -173,24 +180,20 @@ void process_command(char *line)
             printf("List not found.\n");
             return;
         }
+
         int i = atoi(arg2);
         int j = atoi(arg3);
+
         struct list_elem *e1 = list_begin(&my_lists[idx]);
         struct list_elem *e2 = list_begin(&my_lists[idx]);
-        for (int k = 0; k < i && e1 != list_end(&my_lists[idx]); k++)
+
+        for (int k = 0; k < i; k++)
             e1 = list_next(e1);
-        for (int k = 0; k < j && e2 != list_end(&my_lists[idx]); k++)
+        for (int k = 0; k < j; k++)
             e2 = list_next(e2);
-        if (e1 == list_end(&my_lists[idx]) || e2 == list_end(&my_lists[idx]))
-        {
-            printf("Index out of range.\n");
-            return;
-        }
-        list_item *item1 = list_entry(e1, list_item, elem);
-        list_item *item2 = list_entry(e2, list_item, elem);
-        int temp = item1->data;
-        item1->data = item2->data;
-        item2->data = temp;
+
+        list_swap(e1, e2); // list.c에 정의된 함수 호출
+        return;
         return;
     }
 
@@ -210,30 +213,7 @@ void process_command(char *line)
             return;
         }
 
-        // 리스트 길이 계산
-        int listSize = 0;
-        struct list_elem *e;
-        for (e = list_begin(&my_lists[idx]); e != list_end(&my_lists[idx]); e = list_next(e))
-            listSize++;
-
-        // 요소들을 배열에 저장 (임시배열임. 리스트 각 노드의 주소를 담고 있는 리스트임. )
-        // 이론상 이 배열을 쓰지 않고 리스트 자체에서 접근하여 섞을 수도 있지만, 리스트가 다음 노드의 포인터를 지니고 있는 식으로 연결이 되어있기 때문에
-        // 해당 노드의 값으로 접근하려면 계속 순회를 해서 접근해야해서 시간 복잡도가 오래걸림. 그래서
-        // 해당 노드들의 주소값을 갖고있는 배열을 만들어서, 더 쉽게 접근하도록 하는 거임.
-        list_item *items[listSize];
-        int i = 0;
-        for (e = list_begin(&my_lists[idx]); e != list_end(&my_lists[idx]); e = list_next(e))
-            items[i++] = list_entry(e, list_item, elem); // list_entry는 정확히 한 단계만 올라가는 거임. 노드안에 elem 구조체가 있는데. 그 구조체의 원소를 가지고, 한 단계 올라가서, 그 노드의 주소를 반환하는거임.
-
-        // Fisher-Yates 셔플 알고리즘
-        for (int i = listSize - 1; i > 0; i--)
-        {
-            int j = rand() % (i + 1);
-            int temp = items[i]->data;
-            items[i]->data = items[j]->data;
-            items[j]->data = temp;
-        }
-
+        list_shuffle(&my_lists[idx]); // list.c에 정의된 함수 호출
         return;
     }
 
@@ -351,7 +331,6 @@ void process_command(char *line)
         return;
     }
 
-<<<<<<< HEAD
     // list_min <list_name>
     // ex: list_min mylist
     if (strcmp(cmd, "list_min") == 0)
@@ -402,9 +381,9 @@ void process_command(char *line)
 
         int size = list_size(&my_lists[idx]);
         printf("%d\n", size);
-        == == == =
-                     // list_insert_ordered <list_name> <value>
-            if (strcmp(cmd, "list_insert_ordered") == 0)
+
+        // list_insert_ordered <list_name> <value>
+        if (strcmp(cmd, "list_insert_ordered") == 0)
         {
             int idx = find_list_index(arg1);
             if (idx == -1)
@@ -576,12 +555,10 @@ void process_command(char *line)
                 hash_apply(&my_hashes[idx], square);
             else if (strcmp(arg2, "triple") == 0)
                 hash_apply(&my_hashes[idx], triple);
->>>>>>> 58522df (dd)
 
             return;
         }
 
-<<<<<<< HEAD
         // list_empty <list_name>
         // ex: list_empty mylist
         if (strcmp(cmd, "list_empty") == 0)
@@ -682,126 +659,125 @@ void process_command(char *line)
             {
                 list_reverse(&my_lists[idx]);
             }
-
-            == == == =
-                         /* 비트맵 함수 명령어 처림림*/
-
-                if (strcmp(cmd, "create") == 0 && strcmp(arg1, "bitmap") == 0)
-            {
-                if (bitmap_count >= MAX_BITMAP)
-                {
-                    printf("Too many bitmaps.\n");
-                    return;
-                }
-
-                int size = atoi(arg3);
-                my_bitmaps[bitmap_count] = bitmap_create(size);
-                bitmap_names[bitmap_count] = strdup(arg2);
-                bitmap_count++;
-                return;
-            }
-
-            // bitmap_size <name>
-            if (strcmp(cmd, "bitmap_size") == 0)
-            {
-                int idx = find_bitmap_index(arg1);
-                if (idx == -1)
-                    return;
-                printf("%zu\n", bitmap_size(my_bitmaps[idx]));
-                return;
-            }
-
-            // bitmap_mark <name> <index>
-            if (strcmp(cmd, "bitmap_mark") == 0)
-            {
-                int idx = find_bitmap_index(arg1);
-                if (idx == -1)
-                    return;
-                int index = atoi(arg2);
-                bitmap_mark(my_bitmaps[idx], index);
-                return;
-            }
-
-            // bitmap_reset <name> <index>
-            if (strcmp(cmd, "bitmap_reset") == 0)
-            {
-                int idx = find_bitmap_index(arg1);
-                if (idx == -1)
-                    return;
-                int index = atoi(arg2);
-                bitmap_reset(my_bitmaps[idx], index);
-                return;
-            }
-
-            // bitmap_flip <name> <index>
-            if (strcmp(cmd, "bitmap_flip") == 0)
-            {
-                int idx = find_bitmap_index(arg1);
-                if (idx == -1)
-                    return;
-                int index = atoi(arg2);
-                bitmap_flip(my_bitmaps[idx], index);
-                return;
-            }
-
-            // bitmap_test <name> <index>
-            if (strcmp(cmd, "bitmap_test") == 0)
-            {
-                int idx = find_bitmap_index(arg1);
-                if (idx == -1)
-                    return;
-                int index = atoi(arg2);
-                printf("%s\n", bitmap_test(my_bitmaps[idx], index) ? "true" : "false");
-                return;
-            }
-
-            // bitmap_set_all <name> <0 or 1>
-            if (strcmp(cmd, "bitmap_set_all") == 0)
-            {
-                int idx = find_bitmap_index(arg1);
-                if (idx == -1)
-                    return;
-                bool value = atoi(arg2);
-                bitmap_set_all(my_bitmaps[idx], value);
-                return;
-            }
-
-            // bitmap_set <name> <index> <0 or 1>
-            if (strcmp(cmd, "bitmap_set") == 0)
-            {
-                int idx = find_bitmap_index(arg1);
-                if (idx == -1)
-                    return;
-                int index = atoi(arg2);
-                bool value = atoi(arg3);
-                bitmap_set(my_bitmaps[idx], index, value);
-                return;
-            }
-
-            // bitmap_dump <name>
-            if (strcmp(cmd, "bitmap_dump") == 0)
-            {
-                int idx = find_bitmap_index(arg1);
-                if (idx == -1)
-                    return;
-                bitmap_dump(my_bitmaps[idx]);
->>>>>>> 58522df (dd)
-                return;
-            }
         }
 
-        int main()
+        /* 비트맵 함수 명령어 처림림*/
+
+        if (strcmp(cmd, "create") == 0 && strcmp(arg1, "bitmap") == 0)
         {
-            char line[MAX_INPUT];
-
-            while (1)
+            if (bitmap_count >= MAX_BITMAP)
             {
-                if (fgets(line, sizeof(line), stdin) == NULL)
-                    break;
-                if (line[strlen(line) - 1] == '\n')
-                    line[strlen(line) - 1] = '\0';
-                process_command(line);
+                printf("Too many bitmaps.\n");
+                return;
             }
 
-            return 0;
+            int size = atoi(arg3);
+            my_bitmaps[bitmap_count] = bitmap_create(size);
+            bitmap_names[bitmap_count] = strdup(arg2);
+            bitmap_count++;
+            return;
         }
+
+        // bitmap_size <name>
+        if (strcmp(cmd, "bitmap_size") == 0)
+        {
+            int idx = find_bitmap_index(arg1);
+            if (idx == -1)
+                return;
+            printf("%zu\n", bitmap_size(my_bitmaps[idx]));
+            return;
+        }
+
+        // bitmap_mark <name> <index>
+        if (strcmp(cmd, "bitmap_mark") == 0)
+        {
+            int idx = find_bitmap_index(arg1);
+            if (idx == -1)
+                return;
+            int index = atoi(arg2);
+            bitmap_mark(my_bitmaps[idx], index);
+            return;
+        }
+
+        // bitmap_reset <name> <index>
+        if (strcmp(cmd, "bitmap_reset") == 0)
+        {
+            int idx = find_bitmap_index(arg1);
+            if (idx == -1)
+                return;
+            int index = atoi(arg2);
+            bitmap_reset(my_bitmaps[idx], index);
+            return;
+        }
+
+        // bitmap_flip <name> <index>
+        if (strcmp(cmd, "bitmap_flip") == 0)
+        {
+            int idx = find_bitmap_index(arg1);
+            if (idx == -1)
+                return;
+            int index = atoi(arg2);
+            bitmap_flip(my_bitmaps[idx], index);
+            return;
+        }
+
+        // bitmap_test <name> <index>
+        if (strcmp(cmd, "bitmap_test") == 0)
+        {
+            int idx = find_bitmap_index(arg1);
+            if (idx == -1)
+                return;
+            int index = atoi(arg2);
+            printf("%s\n", bitmap_test(my_bitmaps[idx], index) ? "true" : "false");
+            return;
+        }
+
+        // bitmap_set_all <name> <0 or 1>
+        if (strcmp(cmd, "bitmap_set_all") == 0)
+        {
+            int idx = find_bitmap_index(arg1);
+            if (idx == -1)
+                return;
+            bool value = atoi(arg2);
+            bitmap_set_all(my_bitmaps[idx], value);
+            return;
+        }
+
+        // bitmap_set <name> <index> <0 or 1>
+        if (strcmp(cmd, "bitmap_set") == 0)
+        {
+            int idx = find_bitmap_index(arg1);
+            if (idx == -1)
+                return;
+            int index = atoi(arg2);
+            bool value = atoi(arg3);
+            bitmap_set(my_bitmaps[idx], index, value);
+            return;
+        }
+
+        // bitmap_dump <name>
+        if (strcmp(cmd, "bitmap_dump") == 0)
+        {
+            int idx = find_bitmap_index(arg1);
+            if (idx == -1)
+                return;
+            bitmap_dump(my_bitmaps[idx]);
+            return;
+        }
+    }
+
+    int main()
+    {
+        char line[MAX_INPUT];
+
+        while (1)
+        {
+            if (fgets(line, sizeof(line), stdin) == NULL)
+                break;
+            if (line[strlen(line) - 1] == '\n')
+                line[strlen(line) - 1] = '\0';
+            process_command(line);
+        }
+
+        return 0;
+    }
